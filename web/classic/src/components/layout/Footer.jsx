@@ -195,7 +195,7 @@ const FooterBar = () => {
             </Typography.Text>
           </div>
 
-          <div className='text-sm'>
+          <div className='text-sm' style={{ opacity: 0.55 }}>
             <span className='!text-semi-color-text-1'>
               {t('设计与开发由')}{' '}
             </span>
@@ -227,7 +227,7 @@ const FooterBar = () => {
               className='custom-footer na-cb6feafeb3990c78 text-sm !text-semi-color-text-1'
               dangerouslySetInnerHTML={{ __html: footer }}
             ></div>
-            <div className='text-sm flex-shrink-0'>
+            <div className='text-sm flex-shrink-0' style={{ opacity: 0.55 }}>
               <span className='!text-semi-color-text-1'>
                 {t('设计与开发由')}{' '}
               </span>

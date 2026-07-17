@@ -14,8 +14,10 @@ import (
 
 var StartTime = time.Now().Unix() // unit: second
 var Version = "v0.0.0"            // this hard coding will be replaced automatically when building, no need to manually change
-var SystemName = "New API"
-var Footer = ""
+var SystemName = "Onrix AI"
+// §7(b) 的 New API 署名 + 原项目链接由前端内置组件 ProjectAttribution 渲染(已 text-xs + 45% 淡色),
+// 此处 footer_html 只补 app 不提供的 §13「改后源码」入口 + 本产品品牌,同样小字淡色,避免与内置署名重复。
+var Footer = `<span style="font-size:12px;opacity:0.65">© 2026 Onrix AI · <a href="https://github.com/applabs-dev/onrix" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">源码</a></span>`
 var Logo = ""
 var TopUpLink = ""
 

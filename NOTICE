@@ -24,6 +24,19 @@ https://github.com/QuantumNous/new-api
 Modified versions must not misrepresent the origin of the software and must
 mark their changes in accordance with AGPLv3 Section 7(c).
 
+==== Modifications (AGPLv3 Sections 5(a) and 7(c)) ====
+
+This is a modified version of New API (https://github.com/QuantumNous/new-api).
+Modified by DevEloLin, 2026. Changes include product rebranding (display name,
+HTML titles, default footer) and deployment configuration. The author attribution
+and original-project link required by AGPLv3 Section 7(b) are preserved above and
+in the application footer.
+
+The complete corresponding source code of this modified version is offered to all
+users interacting with it over a network, as required by AGPLv3 Section 13, at:
+
+https://github.com/applabs-dev/onrix
+
 ==== Third-Party Notices ====
 
 This product includes third-party open source software. Copyright notices and
