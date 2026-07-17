@@ -17,13 +17,12 @@ permissions:
 
 jobs:
   build-push:
-    runs-on: ubuntu-latest
+    # 原生 arm64 runner(公开仓免费)→ 只构建 arm64、不走 QEMU 模拟,快很多。
+    # 部署目标只有树莓派(arm64),不需要 amd64。
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
@@ -49,7 +48,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
