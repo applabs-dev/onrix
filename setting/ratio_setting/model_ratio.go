@@ -96,6 +96,10 @@ var defaultModelRatio = map[string]float64{
 	"gpt-5-mini-2025-08-07":                     0.125,
 	"gpt-5-nano":                                0.025,
 	"gpt-5-nano-2025-08-07":                     0.025,
+	"gpt-5.5":                                   0.625, // Onrix: $1.25 / 1M (override in Model Pricing)
+	"gpt-5.4":                                   0.625, // Onrix: $1.25 / 1M
+	"gpt-5.4-mini":                              0.125, // Onrix: $0.25 / 1M
+	"gpt-image-2":                               2.5,   // Onrix: $5 / 1M (mirror gpt-image-1)
 	"gpt-3.5-turbo":                             0.25,
 	"gpt-3.5-turbo-0613":                        0.75,
 	"gpt-3.5-turbo-16k":                         1.5, // $0.003 / 1K tokens
@@ -326,6 +330,7 @@ var defaultCompletionRatio = map[string]float64{
 	"gpt-4o-gizmo-*": 3,
 	"gpt-4-all":      2,
 	"gpt-image-1":    8,
+	"gpt-image-2":    8, // Onrix: mirror gpt-image-1
 }
 
 // InitRatioSettings initializes all model related settings maps
@@ -649,6 +654,7 @@ func ModelRatio2JSONString() string {
 
 var defaultImageRatio = map[string]float64{
 	"gpt-image-1": 2,
+	"gpt-image-2": 2, // Onrix: mirror gpt-image-1
 }
 var imageRatioMap = types.NewRWMap[string, float64]()
 var audioRatioMap = types.NewRWMap[string, float64]()
