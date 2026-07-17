@@ -99,6 +99,7 @@ func GetTopUpInfo(c *gin.Context) {
 		"enable_online_topup":              isEpayTopUpEnabled(),
 		"enable_stripe_topup":              isStripeTopUpEnabled(),
 		"enable_creem_topup":               isCreemTopUpEnabled(),
+		"enable_lemonsqueezy_topup":        isLemonSqueezyTopUpEnabled(),
 		"enable_waffo_topup":               enableWaffo,
 		"enable_waffo_pancake_topup":       enableWaffoPancake,
 		"enable_redemption":                complianceConfirmed,
@@ -111,6 +112,7 @@ func GetTopUpInfo(c *gin.Context) {
 			return nil
 		}(),
 		"creem_products":          setting.CreemProducts,
+		"lemonsqueezy_products":   setting.LemonSqueezyProducts,
 		"pay_methods":             payMethods,
 		"min_topup":               operation_setting.MinTopUp,
 		"stripe_min_topup":        setting.StripeMinTopUp,

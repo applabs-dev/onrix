@@ -46,6 +46,25 @@ func isCreemWebhookEnabled() bool {
 	return isCreemTopUpEnabled() && isCreemWebhookConfigured()
 }
 
+func isLemonSqueezyTopUpEnabled() bool {
+	if !isPaymentComplianceConfirmed() {
+		return false
+	}
+	products := strings.TrimSpace(setting.LemonSqueezyProducts)
+	return strings.TrimSpace(setting.LemonSqueezyApiKey) != "" &&
+		strings.TrimSpace(setting.LemonSqueezyStoreId) != "" &&
+		products != "" &&
+		products != "[]"
+}
+
+func isLemonSqueezyWebhookConfigured() bool {
+	return strings.TrimSpace(setting.LemonSqueezyWebhookSecret) != ""
+}
+
+func isLemonSqueezyWebhookEnabled() bool {
+	return isLemonSqueezyTopUpEnabled() && isLemonSqueezyWebhookConfigured()
+}
+
 func isWaffoTopUpEnabled() bool {
 	if !isPaymentComplianceConfirmed() {
 		return false
