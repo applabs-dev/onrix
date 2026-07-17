@@ -61,6 +61,7 @@ import { safeNumberFieldProps } from '../utils/numeric-field'
 import { AmountDiscountVisualEditor } from './amount-discount-visual-editor'
 import { AmountOptionsVisualEditor } from './amount-options-visual-editor'
 import { CreemProductsVisualEditor } from './creem-products-visual-editor'
+import { LemonSqueezyProductsVisualEditor } from './lemonsqueezy-products-visual-editor'
 import { PaymentMethodsVisualEditor } from './payment-methods-visual-editor'
 import {
   formatJsonForEditor,
@@ -159,6 +160,19 @@ const paymentSchema = z.object({
       })
     }
   }),
+  LemonSqueezyApiKey: z.string(),
+  LemonSqueezyStoreId: z.string(),
+  LemonSqueezyWebhookSecret: z.string(),
+  LemonSqueezyTestMode: z.boolean(),
+  LemonSqueezyProducts: z.string().superRefine((value, ctx) => {
+    const error = getJsonError(value, (parsed) => Array.isArray(parsed))
+    if (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: error,
+      })
+    }
+  }),
   WaffoEnabled: z.boolean(),
   WaffoApiKey: z.string(),
   WaffoPrivateKey: z.string(),
@@ -244,6 +258,8 @@ export function PaymentSettingsSection({
   const [amountDiscountVisualMode, setAmountDiscountVisualMode] =
     React.useState(true)
   const [creemProductsVisualMode, setCreemProductsVisualMode] =
+    React.useState(true)
+  const [lemonSqueezyProductsVisualMode, setLemonSqueezyProductsVisualMode] =
     React.useState(true)
   const [showComplianceDialog, setShowComplianceDialog] = React.useState(false)
   const [waffoPayMethods, setWaffoPayMethods] = React.useState<PayMethod[]>(
@@ -356,6 +372,9 @@ export function PaymentSettingsSection({
       AmountOptions: formatJsonForEditor(initialFormValues.AmountOptions),
       AmountDiscount: formatJsonForEditor(initialFormValues.AmountDiscount),
       CreemProducts: formatJsonForEditor(initialFormValues.CreemProducts),
+      LemonSqueezyProducts: formatJsonForEditor(
+        initialFormValues.LemonSqueezyProducts
+      ),
     },
   })
 
@@ -413,6 +432,9 @@ export function PaymentSettingsSection({
       AmountOptions: formatJsonForEditor(parsedDefaults.AmountOptions),
       AmountDiscount: formatJsonForEditor(parsedDefaults.AmountDiscount),
       CreemProducts: formatJsonForEditor(parsedDefaults.CreemProducts),
+      LemonSqueezyProducts: formatJsonForEditor(
+        parsedDefaults.LemonSqueezyProducts
+      ),
     })
   }, [defaultsSignature, form])
 
@@ -437,6 +459,11 @@ export function PaymentSettingsSection({
       CreemWebhookSecret: values.CreemWebhookSecret.trim(),
       CreemTestMode: values.CreemTestMode,
       CreemProducts: values.CreemProducts.trim(),
+      LemonSqueezyApiKey: values.LemonSqueezyApiKey.trim(),
+      LemonSqueezyStoreId: values.LemonSqueezyStoreId.trim(),
+      LemonSqueezyWebhookSecret: values.LemonSqueezyWebhookSecret.trim(),
+      LemonSqueezyTestMode: values.LemonSqueezyTestMode,
+      LemonSqueezyProducts: values.LemonSqueezyProducts.trim(),
       WaffoEnabled: values.WaffoEnabled,
       WaffoSandbox: values.WaffoSandbox,
       WaffoMerchantId: values.WaffoMerchantId.trim(),
@@ -482,6 +509,12 @@ export function PaymentSettingsSection({
       CreemWebhookSecret: initialRef.current.CreemWebhookSecret.trim(),
       CreemTestMode: initialRef.current.CreemTestMode,
       CreemProducts: initialRef.current.CreemProducts.trim(),
+      LemonSqueezyApiKey: initialRef.current.LemonSqueezyApiKey.trim(),
+      LemonSqueezyStoreId: initialRef.current.LemonSqueezyStoreId.trim(),
+      LemonSqueezyWebhookSecret:
+        initialRef.current.LemonSqueezyWebhookSecret.trim(),
+      LemonSqueezyTestMode: initialRef.current.LemonSqueezyTestMode,
+      LemonSqueezyProducts: initialRef.current.LemonSqueezyProducts.trim(),
       WaffoEnabled: initialRef.current.WaffoEnabled,
       WaffoSandbox: initialRef.current.WaffoSandbox,
       WaffoMerchantId: initialRef.current.WaffoMerchantId.trim(),
@@ -627,6 +660,50 @@ export function PaymentSettingsSection({
       normalizeJsonForComparison(initial.CreemProducts)
     ) {
       updates.push({ key: 'CreemProducts', value: sanitized.CreemProducts })
+    }
+
+    if (
+      sanitized.LemonSqueezyApiKey &&
+      sanitized.LemonSqueezyApiKey !== initial.LemonSqueezyApiKey
+    ) {
+      updates.push({
+        key: 'LemonSqueezyApiKey',
+        value: sanitized.LemonSqueezyApiKey,
+      })
+    }
+
+    if (sanitized.LemonSqueezyStoreId !== initial.LemonSqueezyStoreId) {
+      updates.push({
+        key: 'LemonSqueezyStoreId',
+        value: sanitized.LemonSqueezyStoreId,
+      })
+    }
+
+    if (
+      sanitized.LemonSqueezyWebhookSecret &&
+      sanitized.LemonSqueezyWebhookSecret !== initial.LemonSqueezyWebhookSecret
+    ) {
+      updates.push({
+        key: 'LemonSqueezyWebhookSecret',
+        value: sanitized.LemonSqueezyWebhookSecret,
+      })
+    }
+
+    if (sanitized.LemonSqueezyTestMode !== initial.LemonSqueezyTestMode) {
+      updates.push({
+        key: 'LemonSqueezyTestMode',
+        value: sanitized.LemonSqueezyTestMode,
+      })
+    }
+
+    if (
+      normalizeJsonForComparison(sanitized.LemonSqueezyProducts) !==
+      normalizeJsonForComparison(initial.LemonSqueezyProducts)
+    ) {
+      updates.push({
+        key: 'LemonSqueezyProducts',
+        value: sanitized.LemonSqueezyProducts,
+      })
     }
 
     if (sanitized.WaffoEnabled !== initial.WaffoEnabled) {
@@ -877,11 +954,12 @@ export function PaymentSettingsSection({
           />
           <Tabs defaultValue='general' className='min-w-0'>
             <div className='overflow-x-auto pb-1'>
-              <TabsList className='grid min-w-[44rem] grid-cols-6'>
+              <TabsList className='grid min-w-[52rem] grid-cols-7'>
                 <TabsTrigger value='general'>{t('General')}</TabsTrigger>
                 <TabsTrigger value='epay'>Epay</TabsTrigger>
                 <TabsTrigger value='stripe'>{t('Stripe')}</TabsTrigger>
                 <TabsTrigger value='creem'>Creem</TabsTrigger>
+                <TabsTrigger value='lemonsqueezy'>Lemon Squeezy</TabsTrigger>
                 <TabsTrigger value='waffo-pancake'>Waffo Pancake</TabsTrigger>
                 <TabsTrigger value='waffo'>Waffo</TabsTrigger>
               </TabsList>
@@ -1580,6 +1658,197 @@ export function PaymentSettingsSection({
                       </FormControl>
                       <FormDescription>
                         {t('Configure Creem products. Provide a JSON array.')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent
+              value='lemonsqueezy'
+              className={paymentTabContentClassName}
+            >
+              <div className='space-y-4'>
+                <div>
+                  <h3 className='text-lg font-medium'>
+                    {t('Lemon Squeezy Gateway')}
+                  </h3>
+                  <p className='text-muted-foreground text-sm'>
+                    {t(
+                      'Configuration for Lemon Squeezy payment integration'
+                    )}
+                  </p>
+                </div>
+
+                <div className='rounded-md bg-blue-50 p-4 text-sm text-blue-900 dark:bg-blue-950 dark:text-blue-100'>
+                  <p className='mb-2 font-medium'>
+                    {t('Webhook Configuration:')}
+                  </p>
+                  <ul className='list-inside list-disc space-y-1'>
+                    <li>
+                      {t('Webhook URL:')}{' '}
+                      <code className='rounded bg-blue-100 px-1 py-0.5 text-xs dark:bg-blue-900'>
+                        {'<ServerAddress>/api/lemonsqueezy/webhook'}
+                      </code>
+                    </li>
+                    <li>{t('Configure in your Lemon Squeezy dashboard')}</li>
+                  </ul>
+                </div>
+
+                <div className='grid gap-6 md:grid-cols-3'>
+                  <FormField
+                    control={form.control}
+                    name='LemonSqueezyApiKey'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('API Key')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='password'
+                            placeholder={t('Enter Lemon Squeezy API key')}
+                            autoComplete='new-password'
+                            {...field}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            'Lemon Squeezy API key (leave blank unless updating)'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='LemonSqueezyStoreId'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Store ID')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={t('Enter store ID')}
+                            {...field}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t('Lemon Squeezy store ID')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='LemonSqueezyWebhookSecret'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Webhook Secret')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='password'
+                            placeholder={t('Enter webhook secret')}
+                            autoComplete='new-password'
+                            {...field}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            'Webhook signing secret (leave blank unless updating)'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name='LemonSqueezyTestMode'
+                  render={({ field }) => (
+                    <SettingsSwitchItem>
+                      <SettingsSwitchContent>
+                        <FormLabel>{t('Test Mode')}</FormLabel>
+                        <FormDescription>
+                          {t('Enable test mode for Lemon Squeezy payments')}
+                        </FormDescription>
+                      </SettingsSwitchContent>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </SettingsSwitchItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='LemonSqueezyProducts'
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className='mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+                        <FormLabel>{t('Products')}</FormLabel>
+                        <Button
+                          type='button'
+                          variant='outline'
+                          size='sm'
+                          onClick={() =>
+                            setLemonSqueezyProductsVisualMode(
+                              !lemonSqueezyProductsVisualMode
+                            )
+                          }
+                          className='w-full sm:w-auto'
+                        >
+                          {lemonSqueezyProductsVisualMode ? (
+                            <>
+                              <Code2 className='mr-2 h-3 w-3' />
+                              {t('JSON Editor')}
+                            </>
+                          ) : (
+                            <>
+                              <Eye className='mr-2 h-3 w-3' />
+                              {t('Visual Editor')}
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <FormControl>
+                        {lemonSqueezyProductsVisualMode ? (
+                          <LemonSqueezyProductsVisualEditor
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                        ) : (
+                          <Textarea
+                            rows={4}
+                            placeholder='[{"name":"Basic","productId":"123456","price":10,"quota":500000,"currency":"USD"}]'
+                            {...field}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
+                          />
+                        )}
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          'Configure Lemon Squeezy products. Provide a JSON array.'
+                        )}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

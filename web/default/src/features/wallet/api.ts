@@ -35,6 +35,8 @@ import type {
   CompleteOrderRequest,
   CreemPaymentRequest,
   CreemPaymentResponse,
+  LemonSqueezyPaymentRequest,
+  LemonSqueezyPaymentResponse,
   WaffoPaymentRequest,
   WaffoPaymentResponse,
   WaffoPancakePaymentRequest,
@@ -128,6 +130,18 @@ export async function requestCreemPayment(
   request: CreemPaymentRequest
 ): Promise<CreemPaymentResponse> {
   const res = await api.post('/api/user/creem/pay', request, {
+    skipBusinessError: true,
+  } as Record<string, unknown>)
+  return res.data
+}
+
+/**
+ * Request Lemon Squeezy payment
+ */
+export async function requestLemonSqueezyPayment(
+  request: LemonSqueezyPaymentRequest
+): Promise<LemonSqueezyPaymentResponse> {
+  const res = await api.post('/api/user/lemonsqueezy/pay', request, {
     skipBusinessError: true,
   } as Record<string, unknown>)
   return res.data

@@ -42,6 +42,7 @@ export type StripePaymentResponse = ApiResponse<{ pay_link: string }>
 export type AffiliateCodeResponse = ApiResponse<string>
 export type AffiliateTransferResponse = ApiResponse
 export type CreemPaymentResponse = ApiResponse<{ checkout_url: string }>
+export type LemonSqueezyPaymentResponse = ApiResponse<{ checkout_url: string }>
 export type WaffoPaymentResponse = ApiResponse<
   { payment_url?: string } | string
 >
@@ -84,6 +85,32 @@ export interface CreemPaymentRequest {
   product_id: string
   /** Payment method identifier */
   payment_method: 'creem'
+}
+
+/**
+ * Lemon Squeezy product configuration
+ */
+export interface LemonSqueezyProduct {
+  /** Product display name */
+  name: string
+  /** Lemon Squeezy variant ID */
+  productId: string
+  /** Product price */
+  price: number
+  /** Quota amount to credit */
+  quota: number
+  /** Currency (USD or EUR) */
+  currency: 'USD' | 'EUR'
+}
+
+/**
+ * Lemon Squeezy payment request
+ */
+export interface LemonSqueezyPaymentRequest {
+  /** Lemon Squeezy variant ID */
+  product_id: string
+  /** Payment method identifier */
+  payment_method: 'lemonsqueezy'
 }
 
 /**
@@ -140,6 +167,10 @@ export interface TopupInfo {
   enable_creem_topup?: boolean
   /** Available Creem products */
   creem_products?: CreemProduct[]
+  /** Whether Lemon Squeezy topup is enabled */
+  enable_lemonsqueezy_topup?: boolean
+  /** Available Lemon Squeezy products */
+  lemonsqueezy_products?: LemonSqueezyProduct[]
   /** Whether Waffo topup is enabled */
   enable_waffo_topup?: boolean
   /** Available Waffo payment methods */

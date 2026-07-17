@@ -28,6 +28,7 @@ import type {
   TopupInfo,
   PresetAmount,
   CreemProduct,
+  LemonSqueezyProduct,
   PaymentMethod,
   WaffoPayMethod,
 } from '../types'
@@ -119,6 +120,27 @@ function parseCreemProducts(data: unknown): CreemProduct[] {
     .filter((item) => item.name && item.productId)
 }
 
+function parseLemonSqueezyProducts(data: unknown): LemonSqueezyProduct[] {
+  return parseJsonArray(data)
+    .filter(
+      (item): item is Record<string, unknown> =>
+        !!item && typeof item === 'object'
+    )
+    .map((item) => {
+      const currency: LemonSqueezyProduct['currency'] =
+        item.currency === 'EUR' ? 'EUR' : 'USD'
+
+      return {
+        name: typeof item.name === 'string' ? item.name : '',
+        productId: typeof item.productId === 'string' ? item.productId : '',
+        price: Number(item.price) || 0,
+        quota: Number(item.quota) || 0,
+        currency,
+      }
+    })
+    .filter((item) => item.name && item.productId)
+}
+
 function parseAmountOptions(data: unknown): number[] {
   return parseJsonArray(data)
     .map((item) => Number(item))
@@ -189,6 +211,9 @@ export function useTopupInfo() {
         amount_options: parseAmountOptions(response.data.amount_options),
         discount: parseDiscountMap(response.data.discount),
         creem_products: parseCreemProducts(response.data.creem_products),
+        lemonsqueezy_products: parseLemonSqueezyProducts(
+          response.data.lemonsqueezy_products
+        ),
         waffo_pay_methods: parseWaffoPayMethods(
           response.data.waffo_pay_methods
         ),

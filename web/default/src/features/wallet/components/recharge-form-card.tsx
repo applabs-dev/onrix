@@ -48,9 +48,11 @@ import type {
   PresetAmount,
   TopupInfo,
   CreemProduct,
+  LemonSqueezyProduct,
   WaffoPayMethod,
 } from '../types'
 import { CreemProductsSection } from './creem-products-section'
+import { LemonSqueezyProductsSection } from './lemonsqueezy-products-section'
 
 interface RechargeFormCardProps {
   topupInfo: TopupInfo | null
@@ -75,6 +77,9 @@ interface RechargeFormCardProps {
   creemProducts?: CreemProduct[]
   enableCreemTopup?: boolean
   onCreemProductSelect?: (product: CreemProduct) => void
+  lemonSqueezyProducts?: LemonSqueezyProduct[]
+  enableLemonSqueezyTopup?: boolean
+  onLemonSqueezyProductSelect?: (product: LemonSqueezyProduct) => void
   enableWaffoTopup?: boolean
   waffoPayMethods?: WaffoPayMethod[]
   waffoMinTopup?: number
@@ -105,6 +110,9 @@ export function RechargeFormCard({
   creemProducts,
   enableCreemTopup,
   onCreemProductSelect,
+  lemonSqueezyProducts,
+  enableLemonSqueezyTopup,
+  onLemonSqueezyProductSelect,
   enableWaffoTopup,
   waffoPayMethods,
   waffoMinTopup,
@@ -131,7 +139,8 @@ export function RechargeFormCard({
     topupInfo?.enable_stripe_topup ||
     enableWaffoTopup ||
     enableWaffoPancakeTopup
-  const hasAnyTopup = hasConfigurableTopup || enableCreemTopup
+  const hasAnyTopup =
+    hasConfigurableTopup || enableCreemTopup || enableLemonSqueezyTopup
   const hasStandardPaymentMethods =
     Array.isArray(topupInfo?.pay_methods) && topupInfo.pay_methods.length > 0
   const hasWaffoPaymentMethods =
@@ -482,6 +491,22 @@ export function RechargeFormCard({
             <CreemProductsSection
               products={creemProducts}
               onProductSelect={onCreemProductSelect}
+            />
+          </div>
+        )}
+
+      {/* Lemon Squeezy Products Section */}
+      {enableLemonSqueezyTopup &&
+        Array.isArray(lemonSqueezyProducts) &&
+        lemonSqueezyProducts.length > 0 &&
+        onLemonSqueezyProductSelect && (
+          <div className='space-y-2.5 border-t pt-4 sm:space-y-3 sm:pt-6'>
+            <Label className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
+              {t('Lemon Squeezy Payment')}
+            </Label>
+            <LemonSqueezyProductsSection
+              products={lemonSqueezyProducts}
+              onProductSelect={onLemonSqueezyProductSelect}
             />
           </div>
         )}

@@ -302,6 +302,11 @@ export type BillingSettings = {
   CreemWebhookSecret: string
   CreemTestMode: boolean
   CreemProducts: string
+  LemonSqueezyApiKey: string
+  LemonSqueezyStoreId: string
+  LemonSqueezyWebhookSecret: string
+  LemonSqueezyTestMode: boolean
+  LemonSqueezyProducts: string
   WaffoEnabled: boolean
   WaffoApiKey: string
   WaffoPrivateKey: string

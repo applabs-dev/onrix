@@ -152,6 +152,11 @@ const BILLING_SECTIONS = [
           CreemWebhookSecret: settings.CreemWebhookSecret,
           CreemTestMode: settings.CreemTestMode,
           CreemProducts: settings.CreemProducts,
+          LemonSqueezyApiKey: settings.LemonSqueezyApiKey,
+          LemonSqueezyStoreId: settings.LemonSqueezyStoreId,
+          LemonSqueezyWebhookSecret: settings.LemonSqueezyWebhookSecret,
+          LemonSqueezyTestMode: settings.LemonSqueezyTestMode,
+          LemonSqueezyProducts: settings.LemonSqueezyProducts,
         }}
         waffoDefaultValues={{
           WaffoEnabled: settings.WaffoEnabled ?? false,

@@ -27,6 +27,7 @@ import { getSelf } from '@/lib/api'
 import { AffiliateRewardsCard } from './components/affiliate-rewards-card'
 import { BillingHistoryDialog } from './components/dialogs/billing-history-dialog'
 import { CreemConfirmDialog } from './components/dialogs/creem-confirm-dialog'
+import { LemonSqueezyConfirmDialog } from './components/dialogs/lemonsqueezy-confirm-dialog'
 import { PaymentConfirmDialog } from './components/dialogs/payment-confirm-dialog'
 import { TransferDialog } from './components/dialogs/transfer-dialog'
 import { RechargeFormCard } from './components/recharge-form-card'
@@ -39,6 +40,7 @@ import {
   useAffiliate,
   useRedemption,
   useCreemPayment,
+  useLemonSqueezyPayment,
   useWaffoPayment,
   useWaffoPancakePayment,
 } from './hooks'
@@ -52,6 +54,7 @@ import type {
   PaymentMethod,
   PresetAmount,
   CreemProduct,
+  LemonSqueezyProduct,
 } from './types'
 
 interface WalletProps {
@@ -74,6 +77,9 @@ export function Wallet(props: WalletProps) {
   const [creemDialogOpen, setCreemDialogOpen] = useState(false)
   const [selectedCreemProduct, setSelectedCreemProduct] =
     useState<CreemProduct | null>(null)
+  const [lemonSqueezyDialogOpen, setLemonSqueezyDialogOpen] = useState(false)
+  const [selectedLemonSqueezyProduct, setSelectedLemonSqueezyProduct] =
+    useState<LemonSqueezyProduct | null>(null)
   const [showSubscriptionPanel, setShowSubscriptionPanel] = useState(true)
 
   const { status } = useStatus()
@@ -101,6 +107,10 @@ export function Wallet(props: WalletProps) {
   } = useAffiliate()
   const { redeeming, redeemCode } = useRedemption()
   const { processing: creemProcessing, processCreemPayment } = useCreemPayment()
+  const {
+    processing: lemonSqueezyProcessing,
+    processLemonSqueezyPayment,
+  } = useLemonSqueezyPayment()
   const { processWaffoPayment } = useWaffoPayment()
   const { processing: pancakeProcessing, processWaffoPancakePayment } =
     useWaffoPancakePayment()
@@ -236,6 +246,26 @@ export function Wallet(props: WalletProps) {
     }
   }
 
+  // Handle Lemon Squeezy product selection
+  const handleLemonSqueezyProductSelect = (product: LemonSqueezyProduct) => {
+    setSelectedLemonSqueezyProduct(product)
+    setLemonSqueezyDialogOpen(true)
+  }
+
+  // Handle Lemon Squeezy payment confirmation
+  const handleLemonSqueezyConfirm = async () => {
+    if (!selectedLemonSqueezyProduct) return
+
+    const success = await processLemonSqueezyPayment(
+      selectedLemonSqueezyProduct.productId
+    )
+    if (success) {
+      setLemonSqueezyDialogOpen(false)
+      setSelectedLemonSqueezyProduct(null)
+      await fetchUser()
+    }
+  }
+
   const handleWaffoMethodSelect = async (_method: unknown, index: number) => {
     const loadingKey = `waffo-${index}`
     setPaymentLoading(loadingKey)
@@ -298,6 +328,13 @@ export function Wallet(props: WalletProps) {
                   creemProducts={topupInfo?.creem_products}
                   enableCreemTopup={topupInfo?.enable_creem_topup}
                   onCreemProductSelect={handleCreemProductSelect}
+                  lemonSqueezyProducts={topupInfo?.lemonsqueezy_products}
+                  enableLemonSqueezyTopup={
+                    topupInfo?.enable_lemonsqueezy_topup
+                  }
+                  onLemonSqueezyProductSelect={
+                    handleLemonSqueezyProductSelect
+                  }
                   enableWaffoTopup={topupInfo?.enable_waffo_topup}
                   waffoPayMethods={topupInfo?.waffo_pay_methods}
                   waffoMinTopup={topupInfo?.waffo_min_topup}
@@ -361,6 +398,14 @@ export function Wallet(props: WalletProps) {
         onConfirm={handleCreemConfirm}
         product={selectedCreemProduct}
         processing={creemProcessing}
+      />
+
+      <LemonSqueezyConfirmDialog
+        open={lemonSqueezyDialogOpen}
+        onOpenChange={setLemonSqueezyDialogOpen}
+        onConfirm={handleLemonSqueezyConfirm}
+        product={selectedLemonSqueezyProduct}
+        processing={lemonSqueezyProcessing}
       />
     </>
   )
