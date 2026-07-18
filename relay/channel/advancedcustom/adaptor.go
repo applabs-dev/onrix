@@ -302,12 +302,22 @@ func (a *Adaptor) resolve(c *gin.Context, info *relaycommon.RelayInfo) error {
 
 func incomingRequestPath(c *gin.Context, info *relaycommon.RelayInfo) string {
 	if c != nil && c.Request != nil && c.Request.URL != nil {
-		return c.Request.URL.Path
+		return normalizePlaygroundPath(c.Request.URL.Path)
 	}
 	if info == nil {
 		return ""
 	}
-	return strings.Split(info.RequestURLPath, "?")[0]
+	return normalizePlaygroundPath(strings.Split(info.RequestURLPath, "?")[0])
+}
+
+// normalizePlaygroundPath maps the in-panel playground path (/pg/chat/completions)
+// to the canonical /v1 chat path so Advanced Custom route matching resolves the
+// same as a real client (the playground is just a proxied chat completion).
+func normalizePlaygroundPath(p string) string {
+	if strings.HasPrefix(p, "/pg/chat/completions") {
+		return "/v1/chat/completions"
+	}
+	return p
 }
 
 func (a *Adaptor) routeURL(info *relaycommon.RelayInfo) (string, error) {
