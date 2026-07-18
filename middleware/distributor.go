@@ -83,6 +83,13 @@ func Distribute() func(c *gin.Context) {
 				}
 				var selectGroup string
 				usingGroup := common.GetContextKeyString(c, constant.ContextKeyUsingGroup)
+				// Playground proxies chat on /pg/chat/completions; match channels against the
+				// canonical /v1 path so Advanced Custom (path-checked) channels resolve the same
+				// as a real client would (otherwise the playground gets "no available channel").
+				channelRequestPath := c.Request.URL.Path
+				if strings.HasPrefix(channelRequestPath, "/pg/chat/completions") {
+					channelRequestPath = "/v1/chat/completions"
+				}
 				// check path is /pg/chat/completions
 				if strings.HasPrefix(c.Request.URL.Path, "/pg/chat/completions") {
 					playgroundRequest := &dto.PlayGroundRequest{}
@@ -105,7 +112,7 @@ func Distribute() func(c *gin.Context) {
 					affinityUsable := false
 					preferred, err := model.CacheGetChannel(preferredChannelID)
 					if err == nil && preferred != nil && preferred.Status == common.ChannelStatusEnabled &&
-						channelSupportsRequestPath(preferred, c.Request.URL.Path) {
+						channelSupportsRequestPath(preferred, channelRequestPath) {
 						if usingGroup == "auto" {
 							userGroup := common.GetContextKeyString(c, constant.ContextKeyUserGroup)
 							autoGroups := service.GetUserAutoGroup(userGroup)
@@ -136,7 +143,7 @@ func Distribute() func(c *gin.Context) {
 						Ctx:         c,
 						ModelName:   modelRequest.Model,
 						TokenGroup:  usingGroup,
-						RequestPath: c.Request.URL.Path,
+						RequestPath: channelRequestPath,
 						Retry:       common.GetPointer(0),
 					})
 					if err != nil {
