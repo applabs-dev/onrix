@@ -276,7 +276,7 @@ var defaultModelPrice = map[string]float64{
 	// Onrix: fixed per-image price ($/image). Putting gpt-image here forces the
 	// per-call price path (usePrice=true) so the price is exactly this, independent
 	// of size/quality tokens — avoids drift and the "no upstream usage → ~free" bug.
-	"gpt-image-1":                    0.10,
+	"gpt-image-1":                    0.13,
 	"gpt-image-2":                    0.15,
 	"imagen-3.0-generate-002":        0.03,
 	"black-forest-labs/flux-1.1-pro": 0.04,
