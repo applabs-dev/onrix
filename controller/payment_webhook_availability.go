@@ -61,8 +61,20 @@ func isLemonSqueezyWebhookConfigured() bool {
 	return strings.TrimSpace(setting.LemonSqueezyWebhookSecret) != ""
 }
 
+// isLemonSqueezySubscriptionEnabled reports whether Lemon Squeezy is configured enough to
+// support subscription checkouts. Unlike topup it does not require the one-time products
+// catalog — a per-plan variant id covers the subscription case.
+func isLemonSqueezySubscriptionEnabled() bool {
+	if !isPaymentComplianceConfirmed() {
+		return false
+	}
+	return strings.TrimSpace(setting.LemonSqueezyApiKey) != "" &&
+		strings.TrimSpace(setting.LemonSqueezyStoreId) != ""
+}
+
 func isLemonSqueezyWebhookEnabled() bool {
-	return isLemonSqueezyTopUpEnabled() && isLemonSqueezyWebhookConfigured()
+	return (isLemonSqueezyTopUpEnabled() || isLemonSqueezySubscriptionEnabled()) &&
+		isLemonSqueezyWebhookConfigured()
 }
 
 func isWaffoTopUpEnabled() bool {

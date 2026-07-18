@@ -168,6 +168,8 @@ type SubscriptionPlan struct {
 	StripePriceId         string `json:"stripe_price_id" gorm:"type:varchar(128);default:''"`
 	CreemProductId        string `json:"creem_product_id" gorm:"type:varchar(128);default:''"`
 	WaffoPancakeProductId string `json:"waffo_pancake_product_id" gorm:"type:varchar(128);default:''"`
+	// Lemon Squeezy 订阅型 variant id(对照 CreemProductId)
+	LemonSqueezyVariantId string `json:"lemonsqueezy_variant_id" gorm:"type:varchar(128);default:''"`
 
 	// Max purchases per user (0 = unlimited)
 	MaxPurchasePerUser int `json:"max_purchase_per_user" gorm:"type:int;default:0"`
@@ -681,6 +683,191 @@ func ExpireSubscriptionOrder(tradeNo string, expectedPaymentProvider string) err
 		order.CompleteTime = common.GetTimestamp()
 		return tx.Save(&order).Error
 	})
+}
+
+// renewUserSubscriptionFromPlanTx extends the user's most recent subscription of a plan by
+// one plan period and resets usage. If no prior subscription exists (e.g. the created event
+// was missed), it creates a fresh one. It also re-applies the plan's group upgrade because a
+// previous expiry may have downgraded the user.
+func renewUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *SubscriptionPlan) error {
+	if tx == nil || plan == nil || plan.Id == 0 || userId <= 0 {
+		return errors.New("invalid renew args")
+	}
+	var sub UserSubscription
+	q := tx.Set("gorm:query_option", "FOR UPDATE").
+		Where("user_id = ? AND plan_id = ?", userId, plan.Id).
+		Order("end_time desc, id desc").
+		Limit(1).
+		Find(&sub)
+	if q.Error != nil {
+		return q.Error
+	}
+	if q.RowsAffected == 0 {
+		_, err := CreateUserSubscriptionFromPlanTx(tx, userId, plan, "order")
+		return err
+	}
+	nowUnix := GetDBTimestamp()
+	baseUnix := nowUnix
+	if sub.EndTime > nowUnix {
+		baseUnix = sub.EndTime
+	}
+	endUnix, err := calcPlanEndTime(time.Unix(baseUnix, 0), plan)
+	if err != nil {
+		return err
+	}
+	nextReset := calcNextResetTime(time.Unix(nowUnix, 0), plan, endUnix)
+	lastReset := int64(0)
+	if nextReset > 0 {
+		lastReset = nowUnix
+	}
+	upgradeGroup := strings.TrimSpace(plan.UpgradeGroup)
+	if upgradeGroup != "" {
+		currentGroup, err := getUserGroupByIdTx(tx, userId)
+		if err != nil {
+			return err
+		}
+		if currentGroup != upgradeGroup {
+			if err := tx.Model(&User{}).Where("id = ?", userId).
+				Update("group", upgradeGroup).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return tx.Model(&UserSubscription{}).Where("id = ?", sub.Id).Updates(map[string]interface{}{
+		"status":          "active",
+		"end_time":        endUnix,
+		"amount_used":     0,
+		"last_reset_time": lastReset,
+		"next_reset_time": nextReset,
+		"updated_at":      common.GetTimestamp(),
+	}).Error
+}
+
+// RenewSubscriptionForLemonSqueezy handles a recurring subscription payment. It resolves the
+// user/plan from the original order (orderTradeNo) and extends the subscription. It is idempotent
+// per renewalTradeNo (derived from the Lemon Squeezy invoice id): a completed marker
+// SubscriptionOrder with that trade_no guards against duplicate webhook deliveries.
+func RenewSubscriptionForLemonSqueezy(orderTradeNo string, renewalTradeNo string, providerPayload string, expectedPaymentProvider string) error {
+	if orderTradeNo == "" || renewalTradeNo == "" {
+		return errors.New("tradeNo is empty")
+	}
+	var logUserId int
+	var logPlanTitle string
+	var logMoney float64
+	var upgradeGroup string
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var existing SubscriptionOrder
+		dup := tx.Where("trade_no = ?", renewalTradeNo).Limit(1).Find(&existing)
+		if dup.Error != nil {
+			return dup.Error
+		}
+		if dup.RowsAffected > 0 {
+			// already processed — idempotent no-op
+			return nil
+		}
+		var order SubscriptionOrder
+		if err := tx.Where("trade_no = ?", orderTradeNo).First(&order).Error; err != nil {
+			return ErrSubscriptionOrderNotFound
+		}
+		if expectedPaymentProvider != "" && order.PaymentProvider != expectedPaymentProvider {
+			return ErrPaymentMethodMismatch
+		}
+		plan, err := getSubscriptionPlanByIdTx(tx, order.PlanId)
+		if err != nil {
+			return err
+		}
+		if err := renewUserSubscriptionFromPlanTx(tx, order.UserId, plan); err != nil {
+			return err
+		}
+		now := common.GetTimestamp()
+		marker := &SubscriptionOrder{
+			UserId:          order.UserId,
+			PlanId:          order.PlanId,
+			Money:           plan.PriceAmount,
+			TradeNo:         renewalTradeNo,
+			PaymentMethod:   order.PaymentMethod,
+			PaymentProvider: order.PaymentProvider,
+			Status:          common.TopUpStatusSuccess,
+			CreateTime:      now,
+			CompleteTime:    now,
+			ProviderPayload: providerPayload,
+		}
+		if err := tx.Create(marker).Error; err != nil {
+			return err
+		}
+		logUserId = order.UserId
+		logPlanTitle = plan.Title
+		logMoney = plan.PriceAmount
+		upgradeGroup = strings.TrimSpace(plan.UpgradeGroup)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if logUserId == 0 {
+		return nil // idempotent no-op
+	}
+	if upgradeGroup != "" {
+		_ = UpdateUserGroupCache(logUserId, upgradeGroup)
+	}
+	RecordLog(logUserId, LogTypeTopup, fmt.Sprintf("订阅续费成功，套餐: %s，支付金额: %.2f", logPlanTitle, logMoney))
+	return nil
+}
+
+// ExpireUserSubscriptionForLemonSqueezy ends a user's active subscription immediately (used on
+// the Lemon Squeezy subscription_expired event) and downgrades the user group if applicable.
+// Returns the downgrade target group (empty if none) and the affected user id. Idempotent.
+func ExpireUserSubscriptionForLemonSqueezy(orderTradeNo string, expectedPaymentProvider string) (string, int, error) {
+	if orderTradeNo == "" {
+		return "", 0, errors.New("tradeNo is empty")
+	}
+	cacheGroup := ""
+	var userId int
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var order SubscriptionOrder
+		if err := tx.Where("trade_no = ?", orderTradeNo).First(&order).Error; err != nil {
+			return ErrSubscriptionOrderNotFound
+		}
+		if expectedPaymentProvider != "" && order.PaymentProvider != expectedPaymentProvider {
+			return ErrPaymentMethodMismatch
+		}
+		userId = order.UserId
+		now := common.GetTimestamp()
+		var sub UserSubscription
+		q := tx.Set("gorm:query_option", "FOR UPDATE").
+			Where("user_id = ? AND plan_id = ? AND status = ?", order.UserId, order.PlanId, "active").
+			Order("end_time desc, id desc").
+			Limit(1).
+			Find(&sub)
+		if q.Error != nil {
+			return q.Error
+		}
+		if q.RowsAffected == 0 {
+			return nil // already expired/cancelled — idempotent
+		}
+		if err := tx.Model(&UserSubscription{}).Where("id = ?", sub.Id).Updates(map[string]interface{}{
+			"status":     "expired",
+			"end_time":   now,
+			"updated_at": now,
+		}).Error; err != nil {
+			return err
+		}
+		target, err := downgradeUserGroupForSubscriptionTx(tx, &sub, now)
+		if err != nil {
+			return err
+		}
+		if target != "" {
+			cacheGroup = target
+		}
+		return nil
+	})
+	if err != nil {
+		return "", 0, err
+	}
+	if cacheGroup != "" && userId > 0 {
+		_ = UpdateUserGroupCache(userId, cacheGroup)
+	}
+	return cacheGroup, userId, nil
 }
 
 // Admin bind (no payment). Creates a UserSubscription from a plan.

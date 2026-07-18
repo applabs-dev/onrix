@@ -253,6 +253,9 @@ type lemonSqueezyWebhookEvent struct {
 			UserName  string `json:"user_name"`
 			Total     int    `json:"total"`
 			Currency  string `json:"currency"`
+			// 订阅相关:subscription_payment_success 的 subscription-invoice 携带
+			// billing_reason(initial/renewal/updated),用于区分首期与续费账单。
+			BillingReason string `json:"billing_reason"`
 		} `json:"attributes"`
 	} `json:"data"`
 }
@@ -295,12 +298,25 @@ func LemonSqueezyWebhook(c *gin.Context) {
 		eventName = event.Meta.EventName
 	}
 
-	// 只处理一次性订单支付完成
-	if eventName != "order_created" {
+	// 按事件类型分发:order_created 走一次性充值(topup);subscription_* 走订阅
+	// (发放/续费/取消/到期,见 subscription_payment_lemonsqueezy.go)。
+	switch eventName {
+	case "order_created":
+		handleLemonSqueezyOrderCreated(c, &event)
+	case "subscription_created", "subscription_payment_success":
+		handleLemonSqueezySubscriptionActivated(c, &event, eventName)
+	case "subscription_cancelled":
+		handleLemonSqueezySubscriptionCancelled(c, &event)
+	case "subscription_expired":
+		handleLemonSqueezySubscriptionExpired(c, &event)
+	default:
 		logger.LogInfo(c.Request.Context(), fmt.Sprintf("LemonSqueezy webhook 忽略事件 event=%s", eventName))
 		c.Status(http.StatusOK)
-		return
 	}
+}
+
+// handleLemonSqueezyOrderCreated 处理一次性充值订单支付完成(topup)。
+func handleLemonSqueezyOrderCreated(c *gin.Context, event *lemonSqueezyWebhookEvent) {
 	if event.Data.Attributes.Status != "paid" {
 		logger.LogInfo(c.Request.Context(), fmt.Sprintf("LemonSqueezy 订单未支付,忽略 status=%s order_id=%s", event.Data.Attributes.Status, event.Data.Id))
 		c.Status(http.StatusOK)
