@@ -56,7 +56,6 @@ var defaultModelRatio = map[string]float64{
 	"gpt-4.1-mini-2025-04-14":                   0.2,  // $0.4 / 1M tokens
 	"gpt-4.1-nano":                              0.05, // $0.1 / 1M tokens
 	"gpt-4.1-nano-2025-04-14":                   0.05, // $0.1 / 1M tokens
-	"gpt-image-1":                               2.5,  // $5 / 1M tokens
 	"o1":                                        7.5,  // $15 / 1M tokens
 	"o1-2024-12-17":                             7.5,  // $15 / 1M tokens
 	"o1-preview":                                7.5,  // $15 / 1M tokens
@@ -99,7 +98,6 @@ var defaultModelRatio = map[string]float64{
 	"gpt-5.5":                                   1.625, // Onrix: $3.25/$19.5 per 1M (~35% under official $5/$30; completionRatio locked=6)
 	"gpt-5.4":                                   1.0,   // Onrix: $2/$12 per 1M (one tier below 5.5)
 	"gpt-5.4-mini":                              0.2,   // Onrix: $0.4/$2.4 per 1M (mini / loss-leader)
-	"gpt-image-2":                               2.5,   // Onrix: inert fallback — priced per-image via defaultModelPrice
 	"gpt-3.5-turbo":                             0.25,
 	"gpt-3.5-turbo-0613":                        0.75,
 	"gpt-3.5-turbo-16k":                         1.5, // $0.003 / 1K tokens
@@ -334,8 +332,6 @@ var defaultCompletionRatio = map[string]float64{
 	"gpt-4-gizmo-*":  2,
 	"gpt-4o-gizmo-*": 3,
 	"gpt-4-all":      2,
-	"gpt-image-1":    8,
-	"gpt-image-2":    8, // Onrix: mirror gpt-image-1
 }
 
 // InitRatioSettings initializes all model related settings maps
@@ -657,10 +653,7 @@ func ModelRatio2JSONString() string {
 	return modelRatioMap.MarshalJSONString()
 }
 
-var defaultImageRatio = map[string]float64{
-	"gpt-image-1": 2,
-	"gpt-image-2": 2, // Onrix: mirror gpt-image-1
-}
+var defaultImageRatio = map[string]float64{}
 var imageRatioMap = types.NewRWMap[string, float64]()
 var audioRatioMap = types.NewRWMap[string, float64]()
 var audioCompletionRatioMap = types.NewRWMap[string, float64]()
