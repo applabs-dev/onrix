@@ -12,7 +12,18 @@ const (
 	SystemInstanceStatusStale  = "stale"
 
 	SystemInstanceStaleAfterSeconds int64 = 90
+	// Instances not seen for this long are treated as permanently gone (a replaced
+	// container / decommissioned node) and are pruned so stale rows don't pile up.
+	SystemInstanceRetainSeconds int64 = 600
 )
+
+// PruneStaleSystemInstances deletes instances whose last heartbeat is older than
+// SystemInstanceRetainSeconds. New deploys reuse the same NODE_NAME row, so this
+// only removes genuinely-gone nodes (e.g. old container-id rows before NODE_NAME).
+func PruneStaleSystemInstances() error {
+	cutoff := common.GetTimestamp() - SystemInstanceRetainSeconds
+	return DB.Where("last_seen_at < ?", cutoff).Delete(&SystemInstance{}).Error
+}
 
 type SystemInstance struct {
 	NodeName   string `json:"node_name" gorm:"type:varchar(128);primaryKey"`
@@ -70,6 +81,8 @@ func UpsertSystemInstance(nodeName string, info any, startedAt int64, lastSeenAt
 }
 
 func ListSystemInstances() ([]*SystemInstance, error) {
+	// Prune-on-read: drop genuinely-gone nodes so the panel doesn't accumulate stale rows.
+	_ = PruneStaleSystemInstances()
 	var instances []*SystemInstance
 	err := DB.Order("last_seen_at desc").Find(&instances).Error
 	return instances, err
