@@ -96,10 +96,10 @@ var defaultModelRatio = map[string]float64{
 	"gpt-5-mini-2025-08-07":                     0.125,
 	"gpt-5-nano":                                0.025,
 	"gpt-5-nano-2025-08-07":                     0.025,
-	"gpt-5.5":                                   0.625, // Onrix: $1.25 / 1M (override in Model Pricing)
-	"gpt-5.4":                                   0.625, // Onrix: $1.25 / 1M
-	"gpt-5.4-mini":                              0.125, // Onrix: $0.25 / 1M
-	"gpt-image-2":                               2.5,   // Onrix: $5 / 1M (mirror gpt-image-1)
+	"gpt-5.5":                                   1.625, // Onrix: $3.25/$19.5 per 1M (~35% under official $5/$30; completionRatio locked=6)
+	"gpt-5.4":                                   1.0,   // Onrix: $2/$12 per 1M (one tier below 5.5)
+	"gpt-5.4-mini":                              0.2,   // Onrix: $0.4/$2.4 per 1M (mini / loss-leader)
+	"gpt-image-2":                               2.5,   // Onrix: inert fallback — priced per-image via defaultModelPrice
 	"gpt-3.5-turbo":                             0.25,
 	"gpt-3.5-turbo-0613":                        0.75,
 	"gpt-3.5-turbo-16k":                         1.5, // $0.003 / 1K tokens
@@ -270,9 +270,14 @@ var defaultModelRatio = map[string]float64{
 }
 
 var defaultModelPrice = map[string]float64{
-	"suno_music":                     0.1,
-	"suno_lyrics":                    0.01,
-	"dall-e-3":                       0.04,
+	"suno_music":  0.1,
+	"suno_lyrics": 0.01,
+	"dall-e-3":    0.04,
+	// Onrix: fixed per-image price ($/image). Putting gpt-image here forces the
+	// per-call price path (usePrice=true) so the price is exactly this, independent
+	// of size/quality tokens — avoids drift and the "no upstream usage → ~free" bug.
+	"gpt-image-1":                    0.10,
+	"gpt-image-2":                    0.15,
 	"imagen-3.0-generate-002":        0.03,
 	"black-forest-labs/flux-1.1-pro": 0.04,
 	"gpt-4-gizmo-*":                  0.1,
