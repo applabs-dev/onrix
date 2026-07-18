@@ -31,11 +31,7 @@ const lemonSqueezyCheckoutURL = "https://api.lemonsqueezy.com/v1/checkouts"
 var lemonSqueezyAdaptor = &LemonSqueezyAdaptor{}
 
 func verifyLemonSqueezySignature(payload string, signature string, secret string) bool {
-	if secret == "" {
-		if setting.LemonSqueezyTestMode {
-			logger.LogInfo(context.Background(), "LemonSqueezy webhook 验签已跳过 reason=test_mode")
-			return true
-		}
+	if secret == "" || signature == "" {
 		return false
 	}
 	h := hmac.New(sha256.New, []byte(secret))
@@ -156,11 +152,16 @@ type lsCheckoutData struct {
 	Email  string            `json:"email,omitempty"`
 	Custom map[string]string `json:"custom,omitempty"`
 }
+type lsProductOptions struct {
+	RedirectURL string `json:"redirect_url,omitempty"`
+}
 type lsCheckoutReq struct {
 	Data struct {
 		Type       string `json:"type"`
 		Attributes struct {
-			CheckoutData lsCheckoutData `json:"checkout_data"`
+			CheckoutData   lsCheckoutData   `json:"checkout_data"`
+			ProductOptions lsProductOptions `json:"product_options,omitempty"`
+			TestMode       bool             `json:"test_mode,omitempty"`
 		} `json:"attributes"`
 		Relationships struct {
 			Store   lsRel `json:"store"`
@@ -188,6 +189,10 @@ func genLemonSqueezyLink(ctx context.Context, referenceId string, product *Lemon
 	reqBody.Data.Type = "checkouts"
 	reqBody.Data.Attributes.CheckoutData.Email = email
 	reqBody.Data.Attributes.CheckoutData.Custom = map[string]string{"reference_id": referenceId}
+	// 付款完成后跳回控制台(否则用户停在 Lemon Squeezy 页面看不到到账)
+	reqBody.Data.Attributes.ProductOptions.RedirectURL = paymentReturnPath("/console/log")
+	// 仅当运营方开启测试模式时下发(需配合测试 API key)
+	reqBody.Data.Attributes.TestMode = setting.LemonSqueezyTestMode
 	reqBody.Data.Relationships.Store.Data = lsRelInner{Type: "stores", Id: setting.LemonSqueezyStoreId}
 	reqBody.Data.Relationships.Variant.Data = lsRelInner{Type: "variants", Id: product.ProductId}
 
